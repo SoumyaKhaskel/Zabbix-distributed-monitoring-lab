@@ -1,0 +1,59 @@
+services:
+
+  zabbix-db:
+    image: mysql:8.0
+    container_name: zabbix-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    volumes:
+      - zabbix-db-data:/var/lib/mysql
+    networks:
+      - zabbix-net
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:ubuntu-7.0-latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      - zabbix-db
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "10051:10051"
+    networks:
+      - zabbix-net
+
+  zabbix-frontend:
+    image: zabbix/zabbix-web-nginx-mysql:ubuntu-7.0-latest
+    container_name: zabbix-frontend
+    restart: unless-stopped
+    depends_on:
+      - zabbix-db
+      - zabbix-server
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix_pass
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: Asia/Kolkata
+    ports:
+      - "80:8080"
+    networks:
+      - zabbix-net
+
+volumes:
+  zabbix-db-data:
+
+networks:
+  zabbix-net:
+    driver: bridge
